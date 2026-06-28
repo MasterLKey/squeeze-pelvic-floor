@@ -2,9 +2,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
 import { getBool } from '@/lib/mmkv';
 import { MMKV_KEYS, EXERCISE_TYPES } from '@/lib/constants';
-import type { ExerciseParams, ExerciseState, ExercisePhase } from './types';
+import type { ExerciseParams, ExerciseState } from './types';
 
 const PREPARE_SECONDS = 3;
+
+interface InternalState extends ExerciseState {
+  isQuick: boolean;
+}
 
 interface UseExerciseReturn {
   state:    ExerciseState;
@@ -18,7 +22,7 @@ export function useExercise(params: ExerciseParams): UseExerciseReturn {
   const { holdDuration, restDuration, reps, sets, exerciseType } = params;
   const hapticsEnabled = getBool(MMKV_KEYS.HAPTICS_ENABLED, true);
 
-  const [state, setState] = useState<ExerciseState>({
+  const [internalState, setInternalState] = useState<InternalState>({
     phase:               'idle',
     currentSet:          1,
     currentRep:          0,
@@ -26,13 +30,14 @@ export function useExercise(params: ExerciseParams): UseExerciseReturn {
     progress:            0,
     isRunning:           false,
     totalSqueezeSeconds: 0,
+    isQuick:             false,
   });
 
+  const state: ExerciseState = internalState;
+
   const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null);
-  const stateRef     = useRef(state);
   const paramsRef    = useRef(params);
 
-  stateRef.current  = state;
   paramsRef.current = params;
 
   const clearTimer = useCallback(() => {
@@ -51,7 +56,7 @@ export function useExercise(params: ExerciseParams): UseExerciseReturn {
   }, [hapticsEnabled]);
 
   const tick = useCallback(() => {
-    setState((prev) => {
+    setInternalState((prev) => {
       const next = { ...prev };
 
       if (next.phase === 'prepare') {
@@ -69,9 +74,8 @@ export function useExercise(params: ExerciseParams): UseExerciseReturn {
       }
 
       if (next.phase === 'squeeze') {
-        const elapsed  = holdDuration - next.secondsLeft + 1;
-        const progress = elapsed / holdDuration;
-        const squeeze  = next.exerciseTypeIsQuick ? 1 : holdDuration;
+        const elapsed      = holdDuration - next.secondsLeft + 1;
+        const progress     = elapsed / holdDuration;
         const totalSqueeze = next.totalSqueezeSeconds + 1;
 
         if (next.secondsLeft <= 1) {
@@ -147,7 +151,7 @@ export function useExercise(params: ExerciseParams): UseExerciseReturn {
 
   const start = useCallback(() => {
     const isQuick = exerciseType === EXERCISE_TYPES.QUICK_FLICK;
-    setState({
+    setInternalState({
       phase:               'prepare',
       currentSet:          1,
       currentRep:          0,
@@ -155,24 +159,24 @@ export function useExercise(params: ExerciseParams): UseExerciseReturn {
       progress:            0,
       isRunning:           true,
       totalSqueezeSeconds: 0,
-      exerciseTypeIsQuick: isQuick,
-    } as ExerciseState & { exerciseTypeIsQuick: boolean });
+      isQuick,
+    });
     intervalRef.current = setInterval(tick, 1000);
   }, [exerciseType, tick]);
 
   const pause = useCallback(() => {
     clearTimer();
-    setState((prev) => ({ ...prev, isRunning: false }));
+    setInternalState((prev) => ({ ...prev, isRunning: false }));
   }, [clearTimer]);
 
   const resume = useCallback(() => {
-    setState((prev) => ({ ...prev, isRunning: true }));
+    setInternalState((prev) => ({ ...prev, isRunning: true }));
     intervalRef.current = setInterval(tick, 1000);
   }, [tick]);
 
   const stop = useCallback(() => {
     clearTimer();
-    setState({
+    setInternalState({
       phase:               'idle',
       currentSet:          1,
       currentRep:          0,
@@ -180,6 +184,7 @@ export function useExercise(params: ExerciseParams): UseExerciseReturn {
       progress:            0,
       isRunning:           false,
       totalSqueezeSeconds: 0,
+      isQuick:             false,
     });
   }, [clearTimer]);
 

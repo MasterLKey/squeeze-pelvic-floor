@@ -40,7 +40,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: './assets/favicon.png',
   },
   plugins: [
-    'expo-router',
+    ['expo-router', { root: './src/app' }],
     'expo-font',
     'expo-secure-store',
     [
