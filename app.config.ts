@@ -15,8 +15,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundleIdentifier: 'com.masterlkey.squeeze',
     infoPlist: {
       UIBackgroundModes: ['fetch', 'remote-notification'],
-      NSHealthShareUsageDescription:
-        'Squeeze tracks your pelvic floor exercise sessions.',
     },
   },
   android: {
@@ -40,13 +38,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: './assets/favicon.png',
   },
   plugins: [
-    ['expo-router', { root: './src/app' }],
+    ['expo-router', { root: 'src/app' }],
     'expo-font',
     'expo-secure-store',
     [
       'expo-notifications',
       {
-        icon: './assets/notification-icon.png',
         color: '#8B5CF6',
         sounds: [],
       },
