@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { runMigrations } from '@/lib/db/client';
+import { loadStorage } from '@/lib/mmkv';
 import {
   requestPermissions,
   setupAndroidChannel,
@@ -18,7 +19,7 @@ export default function RootLayout() {
   useEffect(() => {
     async function init() {
       try {
-        await runMigrations();
+        await Promise.all([runMigrations(), loadStorage()]);
         await setupAndroidChannel();
         await requestPermissions();
       } finally {
